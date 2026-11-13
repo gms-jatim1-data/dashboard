@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>GMS Jatim 1 Dashboard</title>
+<meta property="og:title" content="GMS Jatim 1 Dashboard">
+<meta property="og:description" content="Untuk internal GMS Jatim 1.">
+<meta name="theme-color" content="#00408C">
+<!--
+  The short address of the GMS Jatim 1 Dashboard (owner, 2026-11-13). It only forwards to the Apps Script web app,
+  keeping everything after the address (?t=…, ?s=…, ?i=…), so invitation, sign-up and WhatsApp links work through it.
+  If the web app ever gets a NEW deployment (a new address), change APP below and WEB_APP_URL in apps/gms-app/Auth.js.
+-->
+<script>
+  var APP = 'https://script.google.com/macros/s/AKfycbyk8rudsi8LQ0E3rMVddyncuIsXM6Mimtl7fHBxF61U4CM58_S6eHKek7AioSk8-EhwAQ/exec';
+  location.replace(APP + location.search + location.hash);
+</script>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #00408C;
+    font-family: Montserrat, 'Segoe UI', Helvetica, Arial, sans-serif; color: #383838; padding: 16px; box-sizing: border-box; }
+  .card { background: #fff; border-radius: 24px; padding: 28px; max-width: 380px; width: 100%; text-align: center; }
+  h1 { margin: 0; font-size: 22px; color: #00408C; }
+  .sub { font-size: 10px; font-weight: 700; letter-spacing: 1.6px; color: #6B6B6B; margin-top: 4px; }
+  p { font-size: 14px; color: #6B6B6B; margin: 18px 0 16px; }
+  a { display: inline-block; background: #00408C; color: #fff; text-decoration: none; font-weight: 700; padding: 12px 24px; border-radius: 999px; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>GMS Jatim 1 Dashboard</h1>
+    <div class="sub">FOR INTERNAL JATIM 1 ONLY</div>
+    <p>Membuka dashboard…</p>
+    <a id="go" href="https://script.google.com/macros/s/AKfycbyk8rudsi8LQ0E3rMVddyncuIsXM6Mimtl7fHBxF61U4CM58_S6eHKek7AioSk8-EhwAQ/exec">Buka dashboard</a>
+  </div>
+  <script>document.getElementById('go').href = APP + location.search + location.hash;</script>
+</body>
+</html>
