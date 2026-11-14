@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Notifikasi · GMS Jatim 1 Dashboard</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GMS Jatim 1">
+<meta name="theme-color" content="#00408C">
+<!--
+  Push reminders (owner, 2026-11-13): signs this phone up for reminders. The person gets a 6-character code in the
+  dashboard (Akun saya › Notifikasi › Aktifkan di HP); this page asks the phone for permission, gets its Firebase token
+  and sends both to the web app (Notif.js notifPost_). Opened from the Home Screen icon (iPhone), it also opens the dashboard.
+-->
+<script src="firebase-config.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #00408C;
+    font-family: Montserrat, 'Segoe UI', Helvetica, Arial, sans-serif; color: #383838; padding: 16px; }
+  .card { background: #fff; border-radius: 24px; padding: 24px; max-width: 400px; width: 100%; }
+  h1 { margin: 0; font-size: 21px; color: #00408C; } .sub { font-size: 10px; font-weight: 700; letter-spacing: 1.6px; color: #6B6B6B; margin-top: 3px; }
+  h2 { font-size: 17px; margin: 18px 0 6px; } p { font-size: 14px; line-height: 1.5; color: #555; margin: 6px 0; }
+  label { display: block; font-weight: 600; font-size: 14px; margin: 14px 0 6px; }
+  input { width: 100%; height: 46px; font-size: 22px; letter-spacing: 6px; text-transform: uppercase; text-align: center; border: 1px solid #CFD4DC; border-radius: 12px; font-family: ui-monospace, Menlo, monospace; }
+  button, a.btn { display: block; width: 100%; margin-top: 14px; border: 0; border-radius: 999px; padding: 13px 18px; font: inherit; font-weight: 700; font-size: 15px;
+    background: #00408C; color: #fff; text-align: center; text-decoration: none; cursor: pointer; }
+  button.light, a.light { background: #fff; color: #00408C; border: 1px solid #00408C; }
+  button:disabled { opacity: .6; }
+  .msg { border-radius: 12px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+  .ok { background: #E8F5EE; color: #1E7B4A; } .err { background: #FCEDEC; color: #B3261E; } .info { background: #F3F6FA; color: #383838; }
+  .hidden { display: none; } ol { padding-left: 20px; font-size: 14px; line-height: 1.6; color: #555; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>GMS Jatim 1 Dashboard</h1>
+  <div class="sub">FOR INTERNAL JATIM 1 ONLY</div>
+
+  <div id="ios" class="hidden">
+    <h2>iPhone: tambahkan ke Layar Utama dulu</h2>
+    <p>Di iPhone, notifikasi hanya bisa aktif dari ikon di Layar Utama.</p>
+    <ol>
+      <li>Tekan tombol <b>Bagikan</b> (kotak dengan panah ke atas) di Safari.</li>
+      <li>Pilih <b>Tambahkan ke Layar Utama</b>, lalu <b>Tambah</b>.</li>
+      <li>Buka <b>GMS Jatim 1</b> dari ikon di Layar Utama, lalu masukkan kode Anda di sana.</li>
+    </ol>
+  </div>
+
+  <div id="form">
+    <h2>Aktifkan notifikasi pengingat</h2>
+    <p>Anda akan menerima pengingat input di HP ini. Ketuk pengingatnya: form input langsung terbuka dengan kota dan tanggal sudah terisi.</p>
+    <label for="code">Kode aktivasi (dari Akun saya)</label>
+    <input id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123">
+    <button id="on" type="button">Aktifkan notifikasi</button>
+    <button id="off" type="button" class="light hidden">Matikan di HP ini</button>
+  </div>
+  <div id="msg" class="msg hidden"></div>
+  <a id="open" class="btn light" href="./">Buka dashboard</a>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js"></script>
+<script>
+  var $ = function (id) { return document.getElementById(id); };
+  var q = new URLSearchParams(location.search);
+  if (q.get('k')) $('code').value = q.get('k').toUpperCase();
+  var ios = /iPhone|iPad|iPod/.test(navigator.userAgent), standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  var supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+  function say(text, kind) { var m = $('msg'); m.textContent = text; m.className = 'msg ' + (kind || 'info'); }
+  var ready = self.FIREBASE_CONFIG && self.FIREBASE_CONFIG.apiKey && self.FIREBASE_CONFIG.apiKey.indexOf('ISI_') !== 0;
+
+  if (ios && !standalone) { $('ios').classList.remove('hidden'); $('form').classList.add('hidden'); }
+  else if (!supported) { $('form').classList.add('hidden'); say('Browser ini tidak mendukung notifikasi. Di Android, buka halaman ini di Chrome.', 'err'); }
+  else if (!ready) { $('on').disabled = true; say('Notifikasi belum disiapkan oleh admin.', 'err'); }
+  if (supported && Notification.permission === 'granted' && localStorage.getItem('gmsNotifOn') === '1') {
+    $('off').classList.remove('hidden'); say('Notifikasi sudah aktif di HP ini.', 'ok');
+  }
+
+  var messaging = null, reg = null;
+  function setup() {
+    if (!messaging) { firebase.initializeApp(self.FIREBASE_CONFIG); messaging = firebase.messaging(); }
+    return (reg ? Promise.resolve(reg) : navigator.serviceWorker.register('firebase-messaging-sw.js')).then(function (r) { reg = r; return r; });
+  }
+  function post(body) {
+    return fetch(self.GMS_APP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); });
+  }
+  function device() { var ua = navigator.userAgent; return (/iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Perangkat') + ' · ' + new Date().toLocaleDateString('id-ID'); }
+
+  $('on').addEventListener('click', function () {
+    var code = $('code').value.trim().toUpperCase();
+    if (code.length !== 6) return say('Masukkan kode 6 karakter dari Akun saya.', 'err');
+    $('on').disabled = true; say('Menunggu izin…');
+    Notification.requestPermission().then(function (p) {
+      if (p !== 'granted') throw new Error('Izin notifikasi ditolak. Izinkan notifikasi untuk halaman ini di pengaturan browser, lalu coba lagi.');
+      return setup();
+    }).then(function (r) {
+      return messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: r });
+    }).then(function (token) {
+      if (!token) throw new Error('HP ini belum bisa menerima notifikasi. Coba lagi.');
+      return post({ action: 'register', code: code, token: token, device: device() });
+    }).then(function (res) {
+      if (!res.ok) throw new Error(res.error || 'Gagal mengaktifkan.');
+      localStorage.setItem('gmsNotifOn', '1');
+      $('off').classList.remove('hidden');
+      say('Notifikasi aktif' + (res.name ? ' untuk ' + res.name : '') + '. Anda bisa menutup halaman ini.', 'ok');
+    }).catch(function (e) { say(e.message || String(e), 'err'); })
+      .then(function () { $('on').disabled = false; });
+  });
+
+  $('off').addEventListener('click', function () {
+    $('off').disabled = true;
+    setup().then(function (r) { return messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: r }); })
+      .then(function (token) { return Promise.all([post({ action: 'unregister', token: token }), messaging.deleteToken()]); })
+      .then(function () { localStorage.removeItem('gmsNotifOn'); $('off').classList.add('hidden'); say('Notifikasi dimatikan di HP ini.', 'ok'); })
+      .catch(function (e) { say(e.message || String(e), 'err'); })
+      .then(function () { $('off').disabled = false; });
+  });
+</script>
+</body>
+</html>
