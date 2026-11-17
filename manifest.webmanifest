@@ -1,7 +1,6 @@
 {
   "name": "GMS Jatim 1 Dashboard",
   "short_name": "GMS Jatim 1",
-  "start_url": "notify.html?app=1",
   "scope": "./",
   "display": "standalone",
   "background_color": "#00408C",

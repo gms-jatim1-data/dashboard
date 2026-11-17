@@ -14,6 +14,8 @@
   Push reminders (owner, 2026-11-13): signs this phone up for reminders. The person gets a 6-character code in the
   dashboard (Akun saya › Notifikasi › Aktifkan di HP); this page asks the phone for permission, gets its Firebase token
   and sends both to the web app (Notif.js notifPost_). Opened from the Home Screen icon (iPhone), it also opens the dashboard.
+  2026-11-17: a personal link from the Regional Pastor (?k=<64 characters>, valid 14 days) needs no code: one button.
+  The manifest has no start_url, so on iPhone the Home Screen icon opens this same link (with its key).
 -->
 <script src="firebase-config.js"></script>
 <style>
@@ -45,15 +47,19 @@
     <ol>
       <li>Tekan tombol <b>Bagikan</b> (kotak dengan panah ke atas) di Safari.</li>
       <li>Pilih <b>Tambahkan ke Layar Utama</b>, lalu <b>Tambah</b>.</li>
-      <li>Buka <b>GMS Jatim 1</b> dari ikon di Layar Utama, lalu masukkan kode Anda di sana.</li>
+      <li id="ios-last">Buka <b>GMS Jatim 1</b> dari ikon di Layar Utama, lalu masukkan kode Anda di sana.</li>
     </ol>
+    <p class="msg info">Tidak ada tombol Bagikan? Halaman ini terbuka di dalam aplikasi lain (mis. Gmail atau WhatsApp). Ketuk <b>⋯</b> atau ikon kompas, pilih <b>Buka di Safari</b>.</p>
   </div>
 
   <div id="form">
     <h2>Aktifkan notifikasi pengingat</h2>
     <p>Anda akan menerima pengingat input di HP ini. Ketuk pengingatnya: form input langsung terbuka dengan kota dan tanggal sudah terisi.</p>
-    <label for="code">Kode aktivasi (dari Akun saya)</label>
-    <input id="code" maxlength="6" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123">
+    <div id="codebox">
+      <label for="code">Kode aktivasi (dari Akun saya) atau link aktivasi</label>
+      <input id="code" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC123">
+    </div>
+    <p id="personal" class="msg info hidden">Link ini khusus untuk Anda. Tinggal ketuk tombol di bawah, lalu pilih <b>Izinkan</b>.</p>
     <button id="on" type="button">Aktifkan notifikasi</button>
     <button id="off" type="button" class="light hidden">Matikan di HP ini</button>
   </div>
@@ -66,7 +72,17 @@
 <script>
   var $ = function (id) { return document.getElementById(id); };
   var q = new URLSearchParams(location.search);
-  if (q.get('k')) $('code').value = q.get('k').toUpperCase();
+  // A 6-character code (Akun saya) or a personal 64-character key (link from the Regional Pastor); a pasted link works too.
+  function keyOf(v) {
+    v = String(v || '').trim();
+    var m = v.match(/[?&]k=([A-Za-z0-9]+)/); if (m) v = m[1];
+    return /^[a-f0-9]{64}$/i.test(v) ? v.toLowerCase() : v.toUpperCase();
+  }
+  var given = q.get('k') ? keyOf(q.get('k')) : '';
+  var personal = given.length === 64;
+  if (given) $('code').value = given;
+  if (personal) { $('codebox').classList.add('hidden'); $('personal').classList.remove('hidden');
+    $('ios-last').innerHTML = 'Buka <b>GMS Jatim 1</b> dari ikon di Layar Utama, lalu ketuk <b>Aktifkan notifikasi</b>. Link Anda sudah tersimpan di ikon itu.'; }
   var ios = /iPhone|iPad|iPod/.test(navigator.userAgent), standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
   var supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   function say(text, kind) { var m = $('msg'); m.textContent = text; m.className = 'msg ' + (kind || 'info'); }
@@ -91,8 +107,8 @@
   function device() { var ua = navigator.userAgent; return (/iPhone|iPad/.test(ua) ? 'iPhone' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Perangkat') + ' · ' + new Date().toLocaleDateString('id-ID'); }
 
   $('on').addEventListener('click', function () {
-    var code = $('code').value.trim().toUpperCase();
-    if (code.length !== 6) return say('Masukkan kode 6 karakter dari Akun saya.', 'err');
+    var code = keyOf($('code').value);
+    if (code.length !== 6 && code.length !== 64) return say('Masukkan kode 6 karakter dari Akun saya, atau tempel link aktivasi Anda.', 'err');
     $('on').disabled = true; say('Menunggu izin…');
     Notification.requestPermission().then(function (p) {
       if (p !== 'granted') throw new Error('Izin notifikasi ditolak. Izinkan notifikasi untuk halaman ini di pengaturan browser, lalu coba lagi.');
