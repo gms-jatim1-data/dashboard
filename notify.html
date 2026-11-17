@@ -45,8 +45,8 @@
     <h2>iPhone: tambahkan ke Layar Utama dulu</h2>
     <p>Di iPhone, notifikasi hanya bisa aktif dari ikon di Layar Utama.</p>
     <ol>
-      <li>Tekan tombol <b>Bagikan</b> (kotak dengan panah ke atas) di Safari.</li>
-      <li>Pilih <b>Tambahkan ke Layar Utama</b>, lalu <b>Tambah</b>.</li>
+      <li>Tekan tombol <b>Bagikan</b> <img src="share-ios.png" width="18" height="18" alt="(ikon kotak dengan panah ke atas)" style="vertical-align:-3px"> di Safari.</li>
+      <li>Pilih <b>Tambahkan ke Layar Utama</b>, lalu <b>Tambah</b>. Pastikan ikon <b>GMS Jatim 1</b> di Layar Utama berwarna <b>biru</b>. Ikon abu-abu tidak bisa mengaktifkan notifikasi: hapus, lalu tambahkan lagi.</li>
       <li id="ios-last">Buka <b>GMS Jatim 1</b> dari ikon di Layar Utama, lalu masukkan kode Anda di sana.</li>
     </ol>
     <p class="msg info">Tidak ada tombol Bagikan? Halaman ini terbuka di dalam aplikasi lain (mis. Gmail atau WhatsApp). Ketuk <b>⋯</b> atau ikon kompas, pilih <b>Buka di Safari</b>.</p>
@@ -82,7 +82,7 @@
   var personal = given.length === 64;
   if (given) $('code').value = given;
   if (personal) { $('codebox').classList.add('hidden'); $('personal').classList.remove('hidden');
-    $('ios-last').innerHTML = 'Buka <b>GMS Jatim 1</b> dari ikon di Layar Utama, lalu ketuk <b>Aktifkan notifikasi</b>. Link Anda sudah tersimpan di ikon itu.'; }
+    $('ios-last').innerHTML = 'Buka <b>GMS Jatim 1</b> dari ikon biru di Layar Utama, lalu ketuk <b>Aktifkan notifikasi</b>. Saat pop-up notifikasi dari iOS muncul, pilih <b>Izinkan</b> (Allow). Link Anda sudah tersimpan di ikon itu.'; }
   var ios = /iPhone|iPad|iPod/.test(navigator.userAgent), standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
   var supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
   function say(text, kind) { var m = $('msg'); m.textContent = text; m.className = 'msg ' + (kind || 'info'); }
