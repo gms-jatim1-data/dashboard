@@ -96,9 +96,35 @@
   }
 
   var messaging = null, reg = null;
+  // The phone's background helper (service worker) must be running before Firebase asks for the phone's address:
+  // on a first visit it is still starting, and Chrome then fails with "Subscription failed - no active Service Worker"
+  // (owner, 2026-11-18). So wait for it (navigator.serviceWorker.ready), with a 10-second limit.
   function setup() {
     if (!messaging) { firebase.initializeApp(self.FIREBASE_CONFIG); messaging = firebase.messaging(); }
-    return (reg ? Promise.resolve(reg) : navigator.serviceWorker.register('firebase-messaging-sw.js')).then(function (r) { reg = r; return r; });
+    if (reg && reg.active) return Promise.resolve(reg);
+    return navigator.serviceWorker.register('firebase-messaging-sw.js').then(function () {
+      return Promise.race([navigator.serviceWorker.ready,
+        new Promise(function (_, no) { setTimeout(function () { no(new Error('Layanan notifikasi di HP ini belum siap. Tutup halaman ini, buka lagi, lalu coba sekali lagi.')); }, 10000); })]);
+    }).then(function (r) { reg = r; return r; });
+  }
+  // Firebase's address for this phone; one retry after a short wait for a helper that was still starting.
+  function phoneToken() {
+    var ask = function () { return setup().then(function (r) { return messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: r }); }); };
+    return ask().catch(function (e) {
+      if (!/no active Service Worker|subscribe|AbortError/i.test(String(e && (e.message || e)))) throw e;
+      return new Promise(function (ok) { setTimeout(ok, 2000); }).then(ask);
+    });
+  }
+  // Errors in plain words (Chrome / Firebase messages are in English and technical).
+  function friendly(e) {
+    var m = String(e && (e.code || '') + ' ' + (e.message || e));
+    if (/storage error|QuotaExceeded|IndexedDB|indexedDB/i.test(m)) return 'Mode Penyamaran (Incognito) atau penyimpanan browser diblokir. Buka link ini di tab Chrome biasa, lalu coba lagi.';
+    if (/push service|token-subscribe-failed|token-unsubscribe-failed|Registration failed|no active Service Worker|subscribe/i.test(m)) {
+      return 'HP ini belum bisa mendaftar notifikasi. Coba: (1) buka link di aplikasi Chrome (bukan di dalam WhatsApp / Gmail), (2) perbarui Chrome dan Layanan Google Play, (3) matikan Penghemat Baterai / Data, lalu ketuk Aktifkan lagi. HP tanpa layanan Google (mis. Huawei baru) tidak bisa menerima notifikasi ini.';
+    }
+    if (/permission-blocked|permission-default|denied/i.test(m)) return 'Izin notifikasi ditolak. Izinkan notifikasi untuk halaman ini di pengaturan Chrome (ikon gembok › Izin › Notifikasi), lalu coba lagi.';
+    if (/Failed to fetch|NetworkError|network/i.test(m)) return 'Koneksi internet terputus. Periksa internet, lalu coba lagi.';
+    return e && e.message ? e.message : String(e);
   }
   function post(body) {
     return fetch(self.GMS_APP_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
@@ -112,9 +138,7 @@
     $('on').disabled = true; say('Menunggu izin…');
     Notification.requestPermission().then(function (p) {
       if (p !== 'granted') throw new Error('Izin notifikasi ditolak. Izinkan notifikasi untuk halaman ini di pengaturan browser, lalu coba lagi.');
-      return setup();
-    }).then(function (r) {
-      return messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: r });
+      return phoneToken();
     }).then(function (token) {
       if (!token) throw new Error('HP ini belum bisa menerima notifikasi. Coba lagi.');
       return post({ action: 'register', code: code, token: token, device: device() });
@@ -123,16 +147,16 @@
       localStorage.setItem('gmsNotifOn', '1');
       $('off').classList.remove('hidden');
       say('Notifikasi aktif' + (res.name ? ' untuk ' + res.name : '') + '. Anda bisa menutup halaman ini.', 'ok');
-    }).catch(function (e) { say(e.message || String(e), 'err'); })
+    }).catch(function (e) { console.warn(e); say(friendly(e), 'err'); })
       .then(function () { $('on').disabled = false; });
   });
 
   $('off').addEventListener('click', function () {
     $('off').disabled = true;
-    setup().then(function (r) { return messaging.getToken({ vapidKey: self.FIREBASE_VAPID_KEY, serviceWorkerRegistration: r }); })
+    phoneToken()
       .then(function (token) { return Promise.all([post({ action: 'unregister', token: token }), messaging.deleteToken()]); })
       .then(function () { localStorage.removeItem('gmsNotifOn'); $('off').classList.add('hidden'); say('Notifikasi dimatikan di HP ini.', 'ok'); })
-      .catch(function (e) { say(e.message || String(e), 'err'); })
+      .catch(function (e) { console.warn(e); say(friendly(e), 'err'); })
       .then(function () { $('off').disabled = false; });
   });
 </script>
